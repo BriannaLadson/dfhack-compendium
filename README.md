@@ -1,3 +1,8 @@
+# DFHack Compendium
+A collection of DFHack mods, experiments, and reference notes created while exploring and extending Dwarf Fortress through scripting.
+
+***
+
 ## Mods
 * **Party Add**: Add any NPC to your adventurer party. Needs a little work as some NPCs will leave the party if they're too far from home or if they can't path to the player.
 * **Party Remove**: Removes any NPC from your adventurer party.
