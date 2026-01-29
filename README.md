@@ -2,6 +2,7 @@
 A collection of DFHack mods, experiments, and reference notes created while exploring and extending Dwarf Fortress through scripting.
 
 ***
+*Note: I prefer Adventure Mode to Fortress Mode so the mods may need to be modified to work in Fort Mode.*
 
 ## Mods
 * **Party Add**: Add any NPC to your adventurer party. Needs a little work as some NPCs will leave the party if they're too far from home or if they can't path to the player.
