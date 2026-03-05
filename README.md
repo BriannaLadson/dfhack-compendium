@@ -15,3 +15,12 @@ A collection of DFHack mods, experiments, and reference notes created while expl
   - **Unit On Fire Event**: A random unit will be set on fire.
 * **Random Pregnancy**: Chooses a random adult male and adult female to have a kid. The child is born 9 months later. It is very random as weird couplings can happen. Perhaps a chipmunk man and an elephant woman shouldn't have kids...
 * **Set Book Title**: Allows you to change the name of written books.
+
+***
+## Set Book Title
+
+While examining a book's description enter **set-book-title -both "New Book Title"** to change the book's title.
+
+<img width="640" height="360" alt="1" src="https://github.com/user-attachments/assets/f0a633aa-3f2e-4682-9ea8-ae092c83e436" />
+<img width="640" height="360" alt="2" src="https://github.com/user-attachments/assets/812da6f7-b7c8-447c-80a1-85dbe76083b0" />
+
