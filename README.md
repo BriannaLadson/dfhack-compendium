@@ -16,9 +16,33 @@ A collection of DFHack mods, experiments, and reference notes created while expl
 * **Random Pregnancy**: Chooses a random adult male and adult female to have a kid. The child is born 9 months later. It is very random as weird couplings can happen. Perhaps a chipmunk man and an elephant woman shouldn't have kids...
 * **Set Book Title**: Allows you to change the name of written books.
 
+*** 
+## Party Add / Remove
+While examining a NPC enter **party-add** or **party-remove** to add/remove them to/from your party.
+
+***
+## Random Event
+* **random-event once**: Will try to fire a random event once.
+* **random-event start [ticks]**: Will try to fire a random event periodically. Example: random-event start 100
+* **random-event stop**: Will stop firing.
+* **random-event interval [ticks]**: Updates firing interval. Example: random-event interval 500
+
+
+### Disabling Events
+You can disable events by commenting them out in the ADV_EVENTS and FORT_EVENTS tables in the code. 
+
+### Adding New Events
+If you decide to create functions for new events, you'll add them to the appropriate table (ADV_EVENTS or FORT_EVENTS) and they should start occurring.
+
+### Automatic Running
+If you want this mod to run automatically without having to call it in the DFHack console, add **random-event** to the **onLoad.init** file inside of **dfhack-config\init**.
+
+***
+## Random Pregnancy
+If you need a random pregnancy to occur enter **random-pregnancy**.
+
 ***
 ## Set Book Title
-
 While examining a book's description enter **set-book-title -both "New Book Title"** to change the book's title.
 
 <img width="640" height="360" alt="1" src="https://github.com/user-attachments/assets/f0a633aa-3f2e-4682-9ea8-ae092c83e436" />
