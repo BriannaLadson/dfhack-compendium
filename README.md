@@ -35,7 +35,7 @@ You can disable events by commenting them out in the ADV_EVENTS and FORT_EVENTS 
 If you decide to create functions for new events, you'll add them to the appropriate table (ADV_EVENTS or FORT_EVENTS) and they should start occurring.
 
 ### Automatic Running
-If you want this mod to run automatically without having to call it in the DFHack console, add **random-event** to the **onLoad.init** file inside of **dfhack-config\init**.
+If you want this mod to run automatically without having to call it in the DFHack console, add **random-event start [ticks]** to the **onLoad.init** file inside of **dfhack-config\init**.
 
 ***
 ## Random Pregnancy
