@@ -185,7 +185,7 @@ local function make_unit_vampire_event_adv()
   return false
 end
 
-local function random_unit_syndrome_adv()
+local function random_unit_syndrome_event_adv()
 	local unit = get_random_unit()
 	
 	local syndrome = get_random_syndrome()
@@ -208,20 +208,6 @@ local function random_unit_syndrome_adv()
 	
 	print(unit_name .. " has the syndrome: " .. syn_name)
 	
-	return true
-end
-
--- Fortress Mode Events
-
-local function berserk_event_fort()
-	local units = get_fort_active_alive_units()
-	
-	if not units or #units == 0 then
-		return false
-	end
-	
-	local target = units[math.random(#units)]
-	target.mood = df.mood_type.Berserk
 	return true
 end
 
@@ -248,6 +234,21 @@ local function unit_on_fire_event_adv()
 
 	return true
 end
+
+-- Fortress Mode Events
+
+local function berserk_event_fort()
+	local units = get_fort_active_alive_units()
+	
+	if not units or #units == 0 then
+		return false
+	end
+	
+	local target = units[math.random(#units)]
+	target.mood = df.mood_type.Berserk
+	return true
+end
+
 
 local function make_unit_vampire_event_fort()
   local units = get_fort_active_alive_units()
@@ -295,6 +296,38 @@ local function unit_on_fire_event_fort()
 	return true
 end
 
+local function random_unit_syndrome_event_fort()
+	local units = get_fort_active_alive_units()
+	
+	if not units or #units == 0 then
+		return false
+	end
+	
+	local unit = units[math.random(#units)]
+	
+	local syndrome = get_random_syndrome()
+	
+	if not unit or not syndrome then
+		print(unit)
+		print(syndrome)
+		
+		return false
+	end
+	
+	dfhack.run_command(
+		'modtools/add-syndrome',
+		'--target', tostring(unit.id),
+		'--syndrome', tostring(syndrome.id)
+	)
+	
+	local unit_name = dfhack.units.getReadableName(unit)
+	local syn_name = syndrome.syn_name ~= '' and syndrome.syn_name or ("Syndrome ID " .. syndrome.id)
+	
+	print(unit_name .. " has the syndrome: " .. syn_name)
+	
+	return true
+end
+
 
 --========================
 --	New modular events (call other scripts)
@@ -327,18 +360,19 @@ end
 ADV_EVENTS = {
 	random_pregnancy_event_adv,
 	instant_baby_event_adv,
-	--berserk_event_adv,
+	berserk_event_adv,
 	unit_on_fire_event_adv,
 	--make_unit_vampire_event_adv,
-	random_unit_syndrome_adv,
+	random_unit_syndrome_event_adv,
 }
 
 FORT_EVENTS = {
 	random_pregnancy_event_fort,
 	instant_baby_event_fort,
-	--berserk_event_fort,
-	--unit_on_fire_event_fort,
+	berserk_event_fort,
+	unit_on_fire_event_fort,
 	--make_unit_vampire_event_fort,
+	random_unit_syndrome_event_fort,
 }
 
 --========================
