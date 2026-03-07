@@ -91,62 +91,37 @@ local function get_fort_active_alive_units()
 	return list
 end
 
+local function get_random_unit()
+	local unit = df.global.world.units.active[math.random(#df.global.world.units.active)]
+
+	return unit
+end
+
+
 local function get_all_syndromes()
-  local raws = df.global.world and df.global.world.raws
-  if not raws then return nil end
+	local list = {}
+	
+	for _, syn in ipairs(df.global.world.raws.mat_table.syndromes.all) do
+		if #syn.ce > 0 then
+			table.insert(list, syn)
+		end
+		
+	end
+	
+	return list
 
-  -- Newer DFHack/DF versions
-  if raws.mat_table and raws.mat_table.syndromes and raws.mat_table.syndromes.all then
-    return raws.mat_table.syndromes.all
-  end
-
-  -- Older versions (fallback)
-  if raws.syndromes and raws.syndromes.all then
-    return raws.syndromes.all
-  end
-
-  return nil
 end
 
-local function get_syndromes_by_class(class_token)
-  local matches = {}
-  local all = get_all_syndromes()
-  if not all then return matches end
-
-  for _, syn in ipairs(all) do
-    if syn and syn.syn_class then
-      for _, cls in ipairs(syn.syn_class) do
-        if cls.value == class_token then
-          table.insert(matches, syn)
-          break
-        end
-      end
-    end
-  end
-
-  return matches
-end
-
-local function get_random_syndrome_by_class(class_token)
-  local list = get_syndromes_by_class(class_token)
-  if not list or #list == 0 then
-    return nil
-  end
-  return list[math.random(#list)]
-end
-
-local function apply_random_syndrome(unit, class_token)
-  if not unit then return false end
-
-  local syn = get_random_syndrome_by_class(class_token)
-  if not syn then return false end
-
-  dfhack.run_command(
-    ('modtools/add-syndrome --target %d --syndrome %d --resetPolicy DoNothing --skipImmunities')
-      :format(unit.id, syn.id)
-  )
-
-  return true
+local function get_random_syndrome()
+	local all_syndromes = get_all_syndromes()
+	
+	if #all_syndromes == 0 then
+		return nil
+	end
+	
+	local syndrome = all_syndromes[math.random(#all_syndromes)]
+	
+	return syndrome
 end
 
 --========================
@@ -208,6 +183,32 @@ local function make_unit_vampire_event_adv()
   end
 
   return false
+end
+
+local function random_unit_syndrome_adv()
+	local unit = get_random_unit()
+	
+	local syndrome = get_random_syndrome()
+	
+	if not unit or not syndrome then
+		print(unit)
+		print(syndrome)
+		
+		return false
+	end
+	
+	dfhack.run_command(
+		'modtools/add-syndrome',
+		'--target', tostring(unit.id),
+		'--syndrome', tostring(syndrome.id)
+	)
+	
+	local unit_name = dfhack.units.getReadableName(unit)
+	local syn_name = syndrome.syn_name ~= '' and syndrome.syn_name or ("Syndrome ID " .. syndrome.id)
+	
+	print(unit_name .. " has the syndrome: " .. syn_name)
+	
+	return true
 end
 
 -- Fortress Mode Events
@@ -326,17 +327,18 @@ end
 ADV_EVENTS = {
 	random_pregnancy_event_adv,
 	instant_baby_event_adv,
-	berserk_event_adv,
+	--berserk_event_adv,
 	unit_on_fire_event_adv,
-	make_unit_vampire_event_adv,
+	--make_unit_vampire_event_adv,
+	random_unit_syndrome_adv,
 }
 
 FORT_EVENTS = {
 	random_pregnancy_event_fort,
 	instant_baby_event_fort,
-	berserk_event_fort,
-	unit_on_fire_event_fort,
-	make_unit_vampire_event_fort,
+	--berserk_event_fort,
+	--unit_on_fire_event_fort,
+	--make_unit_vampire_event_fort,
 }
 
 --========================
