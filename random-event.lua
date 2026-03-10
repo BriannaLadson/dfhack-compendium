@@ -56,6 +56,12 @@ local function get_nearby_units(pos1, pos2)
 	return units
 end
 
+local function get_nearby_units_any(pos1, pos2, exclude_id)
+	return dfhack.units.getUnitsInBox(pos1, pos2, function(u)
+		return not exclude_id or u.id ~= exclude_id
+	end)
+end
+
 local function get_predator_pool()
 	local pool = {}
 
@@ -123,6 +129,100 @@ local function get_random_syndrome()
 	
 	return syndrome
 end
+
+local function get_unit_name(unit)
+	return dfhack.TranslateName(dfhack.units.getVisibleName(unit), true)
+end
+
+local function is_nonadult(unit)
+	return unit.profession == df.profession.BABY or unit.profession == df.profession.CHILD
+end
+
+local function get_party_leader_id(unit)
+	if not unit then
+		return -1
+	end
+
+	local leader_id = unit.relationship_ids[df.unit_relationship_type.GroupLeader]
+
+	if leader_id == -1 then
+		return unit.id
+	end
+
+	return leader_id
+end
+
+local function is_same_party(unit_a, unit_b)
+	if not unit_a or not unit_b then
+		return false
+	end
+
+	return get_party_leader_id(unit_a) == get_party_leader_id(unit_b)
+end
+
+local function is_valid_pickpocket_thief(thief, victim)
+    if not thief or not victim then
+        return false
+    end
+
+    -- cannot steal from self
+    if thief.id == victim.id then
+        return false
+    end
+
+    -- prevent children/infants from stealing
+    if is_nonadult(thief) then
+        return false
+    end
+
+    -- prevent party members from stealing from one another
+    if is_same_party(thief, victim) then
+        return false
+    end
+
+    -- basic sanity / existence checks
+    if not dfhack.units.isAlive(thief) or not dfhack.units.isAlive(victim) then
+        return false
+    end
+
+    return true
+end
+
+local function get_pickpocketable_inventory(unit)
+    local stealable = {}
+
+    for _, inv in ipairs(unit.inventory) do
+		if inv.item then
+            local mode = inv.mode
+
+            -- Avoid obviously unrealistic steals
+            if mode ~= df.inv_item_role_type.Worn
+            and mode ~= df.inv_item_role_type.Weapon then
+                table.insert(stealable, inv)
+            end
+        end
+    end
+
+    return stealable
+end
+
+local function in_adventurer_party(unit)
+	local adv = get_adv()
+	if not adv or not unit then
+		return false
+	end
+
+	return is_same_party(unit, adv)
+end
+
+local function get_skill(unit, skill)
+	local val = dfhack.units.getEffectiveSkill(unit, skill)
+	if not val or val < 0 then
+		return 0
+	end
+	return val
+end
+
 
 --========================
 --	Event functions
@@ -235,6 +335,62 @@ local function unit_on_fire_event_adv()
 	return true
 end
 
+local function random_pickpocket_event_adv()
+	--Pickpocket Target
+	local target = get_random_unit()
+	
+	if not target then
+		return false
+	end
+	
+	--Pickpocket Thief
+	local pos1, pos2 = calc_box(target.pos.x, target.pos.y, target.pos.z, 1)
+	
+	local units = get_nearby_units(pos1, pos2)
+	
+	if #units == 0 then
+		return false
+	end
+	
+	local possible_thieves = {}
+	for _, unit in ipairs(units) do
+		if is_valid_pickpocket_thief(unit, target) then
+			table.insert(possible_thieves, unit)
+		end
+	end
+	
+	if #possible_thieves == 0 then
+		return false
+	end
+	
+	local thief = possible_thieves[math.random(#possible_thieves)]
+	
+	--Pickpocket Item
+	local stealable = get_pickpocketable_inventory(target)
+	
+	if #stealable == 0 then
+		return false
+	end
+	
+	local stolen_inv = stealable[math.random(#stealable)]
+	local item = stolen_inv.item
+	
+	local ok = dfhack.items.moveToInventory(
+		item,
+		thief,
+		df.inv_item_role_type.Hauled,
+		0
+	)
+	
+	if not ok then
+		return false
+	end
+	
+	
+	return true
+	
+end
+
 -- Fortress Mode Events
 
 local function berserk_event_fort()
@@ -328,7 +484,44 @@ local function random_unit_syndrome_event_fort()
 	return true
 end
 
+local function random_pickpocket_event_fort()
+	local units = get_fort_active_alive_units()
+	if not units or #units == 0 then
+		return false
+	end
 
+	local target = units[math.random(#units)]
+	
+	local pos1, pos2 = calc_box(target.pos.x, target.pos.y, target.pos.z, 1)
+	local nearby = get_nearby_units_any(pos1, pos2, target.id)
+
+	if #nearby == 0 then
+		return false
+	end
+
+	local possible_thieves = {}
+	for _, unit in ipairs(nearby) do
+		if is_valid_pickpocket_thief(unit, target) then
+			table.insert(possible_thieves, unit)
+		end
+	end
+
+	if #possible_thieves == 0 then
+		return false
+	end
+
+	local thief = possible_thieves[math.random(#possible_thieves)]
+	local stealable = get_pickpocketable_inventory(target)
+
+	if #stealable == 0 then
+		return false
+	end
+
+	local stolen_inv = stealable[math.random(#stealable)]
+	local item = stolen_inv.item
+
+	return dfhack.items.moveToInventory(item, thief, df.inv_item_role_type.Hauled, 0) or false
+end
 --========================
 --	New modular events (call other scripts)
 --========================
@@ -362,8 +555,9 @@ ADV_EVENTS = {
 	instant_baby_event_adv,
 	berserk_event_adv,
 	unit_on_fire_event_adv,
-	--make_unit_vampire_event_adv,
+	make_unit_vampire_event_adv,
 	random_unit_syndrome_event_adv,
+	random_pickpocket_event_adv,
 }
 
 FORT_EVENTS = {
@@ -371,8 +565,9 @@ FORT_EVENTS = {
 	instant_baby_event_fort,
 	berserk_event_fort,
 	unit_on_fire_event_fort,
-	--make_unit_vampire_event_fort,
+	make_unit_vampire_event_fort,
 	random_unit_syndrome_event_fort,
+	random_pickpocket_event_fort, --Needs to be tested!
 }
 
 --========================
