@@ -12,6 +12,7 @@ A collection of DFHack mods, experiments, and reference notes created while expl
   - **Give Unit Random Syndrome Event**: A random unit is given a random syndrome. 
   - **Instant Baby Event**: A random adult male/adult female will instantly have a baby.
   - **Make Unit Vampire Event**: Doesn't work. Its supposed to select a random unit and turn them into a vampire. Can still happen with the **Give Unit Random Syndrome Event** though.
+  - **Pickpocket Event**: A random unit will have one their items taken by another unit that's within a 1 tile radius of them.
   - **Random Pregnancy Event**: A random adult male/adult female will conceive with a default 9 months gestation.
   - **Unit On Fire Event**: A random unit will be set on fire.
 * **Random Pregnancy**: Chooses a random adult male and adult female to have a kid. The child is born 9 months later. It is very random as weird couplings can happen. Perhaps a chipmunk man and an elephant woman shouldn't have kids...
