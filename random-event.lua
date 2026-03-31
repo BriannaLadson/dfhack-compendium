@@ -312,19 +312,7 @@ local function random_unit_syndrome_event_adv()
 end
 
 local function unit_on_fire_event_adv()
-	local adv = get_adv()
-	if not adv then
-		return false
-	end
-
-	local pos1, pos2 = calc_box(adv.pos.x, adv.pos.y, adv.pos.z, 6)
-	local units = get_nearby_units(pos1, pos2)
-
-	if #units == 0 then
-		return false
-	end
-
-	local target = units[math.random(#units)]
+	local target = get_random_unit()
 
 	for _, entry in ipairs(target.inventory) do
 		if entry.item and entry.item.flags then
@@ -391,8 +379,30 @@ local function random_pickpocket_event_adv()
 	
 end
 
--- Fortress Mode Events
+local function random_teleport_event_adv()
+	local target = get_random_unit()
+	
+	if not target then
+		return false
+	end
+	
+	local mapx, mapy, mapz = dfhack.maps.getTileSize()
+	
+	local pos = {
+		x = math.random(0, mapx - 1),
+		y = math.random(0, mapy - 1),
+		z = math.random(0, mapz - 1),
+	}
+	
+	if dfhack.maps.isValidTilePos(pos) then
+		return dfhack.units.teleport(target, pos)
+	end
+	
+	return true
+	
+end
 
+-- Fortress Mode Events
 local function berserk_event_fort()
 	local units = get_fort_active_alive_units()
 	
@@ -522,6 +532,31 @@ local function random_pickpocket_event_fort()
 
 	return dfhack.items.moveToInventory(item, thief, df.inv_item_role_type.Hauled, 0) or false
 end
+
+local function random_teleport_event_fort()
+	local target = get_random_unit()
+	
+	if not target then
+		return false
+	end
+	
+	local mapx, mapy, mapz = dfhack.maps.getTileSize()
+	
+	local pos = {
+		x = math.random(0, mapx - 1),
+		y = math.random(0, mapy - 1),
+		z = math.random(0, mapz - 1),
+	}
+	
+	if dfhack.maps.isValidTilePos(pos) then
+		return dfhack.units.teleport(target, pos)
+	end
+	
+	return true
+	
+end
+
+
 --========================
 --	New modular events (call other scripts)
 --========================
@@ -555,9 +590,10 @@ ADV_EVENTS = {
 	instant_baby_event_adv,
 	berserk_event_adv,
 	unit_on_fire_event_adv,
-	make_unit_vampire_event_adv,
+	--make_unit_vampire_event_adv,
 	random_unit_syndrome_event_adv,
 	random_pickpocket_event_adv,
+	random_teleport_event_adv,
 }
 
 FORT_EVENTS = {
@@ -568,6 +604,7 @@ FORT_EVENTS = {
 	make_unit_vampire_event_fort,
 	random_unit_syndrome_event_fort,
 	random_pickpocket_event_fort, --Needs to be tested!
+	random_teleport_event_fort, --Needs to be tested!
 }
 
 --========================
