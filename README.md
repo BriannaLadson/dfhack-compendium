@@ -5,6 +5,7 @@ A collection of DFHack mods, experiments, and reference notes created while expl
 *Note: I prefer Adventure Mode to Fortress Mode so the mods may need to be modified to work in Fort Mode.*
 
 ## Mods
+* **Dynamic Party**: Makes party members more autonomous. As of right now, NPCs will equip the best weapon in their inventory based on their highest melee skill. Its a WIP so it has its quirks.
 * **Party Add**: Add any NPC to your adventurer party. Needs a little work as some NPCs will leave the party if they're too far from home or if they can't path to the player.
 * **Party Remove**: Removes any NPC from your adventurer party.
 * **Random Event**: A random event occurs on a set interval. A good way to add chaos to your playthrough. Needs more events though. Events work in both Adventure and Fortress Mode.
@@ -18,6 +19,18 @@ A collection of DFHack mods, experiments, and reference notes created while expl
   - **Unit On Fire Event**: A random unit will be set on fire.
 * **Random Pregnancy**: Chooses a random adult male and adult female to have a kid. The child is born 9 months later. It is very random as weird couplings can happen. Perhaps a chipmunk man and an elephant woman shouldn't have kids...
 * **Set Book Title**: Allows you to change the name of written books.
+
+***
+## Dynamic Party
+* **dynamic-party once**: Will fire the dynamic party script once.
+* **dynamic-party start [ticks]**: Will fire the dynamic party script periodically. Example: dynamic-party start 100
+
+### Features & Bugs
+* Companions will automatically equip the best weapon available in their inventory based on their highest melee skill level.
+* The companion sprites don't automatically update so they may appear to be holding a weapon that they dropped or may not appear to be holding a weapon at all, even though they are.
+
+### Automatic Running
+If you want this mod to run automatically without having to call it in the DFHack console, add **dynamic-party start [ticks]** to the **onLoad.init** file inside of **dfhack-config\init**.
 
 *** 
 ## Party Add / Remove
