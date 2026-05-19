@@ -18,7 +18,12 @@ A collection of DFHack mods, experiments, and reference notes created while expl
   - **Random Teleport Event**: A random unit will be teleported to a random x,y,z position.
   - **Unit On Fire Event**: A random unit will be set on fire.
 * **Random Pregnancy**: Chooses a random adult male and adult female to have a kid. The child is born 9 months later. It is very random as weird couplings can happen. Perhaps a chipmunk man and an elephant woman shouldn't have kids...
+* **Romance**: Allows you to build romantic relationships with NPCs by bringing them items as gifts. **Requires the Set Pregnancy (set-pregnancy.lua) script.**
+  - **Give Gifts**: You'll be asked to bring a random item to the NPC. Succeeding will increase the relationship. Canceling the request will decrease it.
+  - **Relationship Decay (Future Feature)**: Relationship values will decrease over time, which may cause a break up.
+  - **Get Gifts (Future Feature)**: You'll periodically get gifts also.
 * **Set Book Title**: Allows you to change the name of written books.
+* **Set Pregnancy**: Allows you to choose another adult for your adventurer to start a family with.
 
 ***
 ## Dynamic Party
@@ -58,9 +63,16 @@ If you want this mod to run automatically without having to call it in the DFHac
 If you need a random pregnancy to occur enter **random-pregnancy**.
 
 ***
+## Romance
+Enter **romance** while viewing an NPC and a menu will appear.
+
+***
 ## Set Book Title
 While examining a book's description enter **set-book-title -both "New Book Title"** to change the book's title.
 
 <img width="640" height="360" alt="1" src="https://github.com/user-attachments/assets/f0a633aa-3f2e-4682-9ea8-ae092c83e436" />
 <img width="640" height="360" alt="2" src="https://github.com/user-attachments/assets/812da6f7-b7c8-447c-80a1-85dbe76083b0" />
 
+***
+## Set Pregnancy
+Enter **set-pregnancy** while viewing an NPC. You can also set a gestation time with **set-pregnancy [ticks]** or **set-pregnancy 100**.
