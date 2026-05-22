@@ -1,4 +1,4 @@
--- romance-quests.lua
+-- romance.lua
 
 local gui = require('gui')
 local widgets = require('gui.widgets')
@@ -16,6 +16,11 @@ local TICKS_PER_DAY = 1200
 local TICKS_PER_MONTH = 28 * TICKS_PER_DAY
 local STANDARD_GESTATION_TICKS = 9 * TICKS_PER_MONTH
 local PERSIST_KEY = 'romance-quests'
+local DECAY_PERSIST_KEY = 'romance-quest-decay'
+local RELATIONSHIP_DECAY_INTERVAL = TICKS_PER_MONTH
+local RELATIONSHIP_DECAY_AMOUNT = 2
+local BREAKUP_THRESHOLD = 10
+local BREAKUP_CHANCE = 25
 
 -------------------------------------------------
 -- Text Safety
@@ -787,6 +792,133 @@ local function try_spend_the_night(unit1, unit2)
     return true, 'They spent the night together.'
 end
 
+local function get_current_tick()
+    return (df.global.cur_year_tick or 0)
+        + ((df.global.cur_year or 0) * 403200)
+end
+
+local function get_decay_key(unit1, unit2)
+    return get_quest_key(unit1, unit2)
+end
+
+local function load_decay_state()
+    local ok, state = pcall(function()
+        return dfhack.persistent.getWorldData(DECAY_PERSIST_KEY, {
+            last_ticks = {}
+        })
+    end)
+
+    if ok and type(state) == 'table' then
+        return state
+    end
+
+    return {last_ticks = {}}
+end
+
+local function save_decay_state(state)
+    dfhack.persistent.saveWorldData(DECAY_PERSIST_KEY, state)
+end
+
+local function reset_relationship_decay_timer(unit1, unit2)
+    local key = get_decay_key(unit1, unit2)
+
+    if not key then
+        return false
+    end
+
+    local state = load_decay_state()
+    state.last_ticks = state.last_ticks or {}
+    state.last_ticks[key] = get_current_tick()
+    save_decay_state(state)
+
+    return true
+end
+
+local function apply_time_based_relationship_decay(unit1, unit2)
+    if not unit1 or not unit2 then
+        return false, 'No valid units selected.'
+    end
+
+    if not has_lover_relationship(unit1, unit2)
+        and not has_spouse_relationship(unit1, unit2)
+    then
+        return false, 'No romantic relationship to decay.'
+    end
+
+    local key = get_decay_key(unit1, unit2)
+
+    if not key then
+        return false, 'Could not create decay key.'
+    end
+
+    local state = load_decay_state()
+    state.last_ticks = state.last_ticks or {}
+
+    local current_tick = get_current_tick()
+    local last_tick = tonumber(state.last_ticks[key])
+
+    if not last_tick then
+        state.last_ticks[key] = current_tick
+        save_decay_state(state)
+        return false, 'Relationship decay timer started.'
+    end
+
+    local elapsed = current_tick - last_tick
+    local decay_steps = math.floor(elapsed / RELATIONSHIP_DECAY_INTERVAL)
+
+    if decay_steps <= 0 then
+        return false, 'Not enough time has passed for relationship decay.'
+    end
+
+    local decay_amount = decay_steps * RELATIONSHIP_DECAY_AMOUNT
+    local before = get_relationship_strength(unit1, unit2)
+
+    adjust_relationship_strength(unit1, unit2, -decay_amount)
+
+    local after = get_relationship_strength(unit1, unit2)
+    state.last_ticks[key] = last_tick + (decay_steps * RELATIONSHIP_DECAY_INTERVAL)
+    save_decay_state(state)
+
+    if after <= 0 then
+		break_up_relationship(unit1, unit2)
+		state.last_ticks[key] = nil
+		save_decay_state(state)
+
+		return true, 'Relationship decayed from ' ..
+			tostring(before) ..
+			' to 0. The NPC broke up with you.'
+	end
+
+	if after <= BREAKUP_THRESHOLD then
+		local roll = math.random(100)
+
+		print(
+			'Breakup roll: ' ..
+			tostring(roll) ..
+			' / chance=' ..
+			tostring(BREAKUP_CHANCE)
+		)
+
+		if roll <= BREAKUP_CHANCE then
+			break_up_relationship(unit1, unit2)
+			state.last_ticks[key] = nil
+			save_decay_state(state)
+
+			return true, 'Relationship decayed from ' ..
+				tostring(before) ..
+				' to ' ..
+				tostring(after) ..
+				'. The NPC broke up with you.'
+		end
+	end
+
+    return true, 'Relationship decayed from ' ..
+        tostring(before) ..
+        ' to ' ..
+        tostring(after) ..
+        '.'
+end
+
 -------------------------------------------------
 -- Inventory Helpers
 -------------------------------------------------
@@ -1055,6 +1187,10 @@ function GiftItemSelectionWindow:give_item(item)
     print('New relationship strength: ' ..
         tostring(get_relationship_strength(self.adventurer, self.target)))
 
+    if adjusted then
+        reset_relationship_decay_timer(self.adventurer, self.target)
+    end
+
     remove_quest(self.quest_key)
     save_quests()
 
@@ -1106,6 +1242,13 @@ function RomanceQuestWindow:init()
     self.selecting_item = false
     self.item_choices = {}
     self.dirty = 0
+	
+	local decayed, decay_message = apply_time_based_relationship_decay(
+		self.adventurer,
+		self.target
+	)
+
+	self.status_message = decay_message or ''
 
     print('Adventurer: ' .. get_safe_unit_name(self.adventurer))
     print('Target: ' .. get_safe_unit_name(self.target))
@@ -1226,6 +1369,7 @@ function RomanceQuestWindow:init()
                 self.status_message = message
 
                 if success then
+                    reset_relationship_decay_timer(self.adventurer, self.target)
                     print('Marriage success: ' .. tostring(message))
                 else
                     print('Marriage result: ' .. tostring(message))
@@ -1254,6 +1398,7 @@ function RomanceQuestWindow:init()
                 self.status_message = message
 
                 if success then
+                    reset_relationship_decay_timer(self.adventurer, self.target)
                     print('Spend the night success: ' .. tostring(message))
                 else
                     print('Spend the night result: ' .. tostring(message))
@@ -1323,7 +1468,7 @@ function RomanceQuestWindow:init()
                 return self.status_message
             end}},
             text_pen=COLOR_LIGHTRED,
-        },
+        }
     }
 end
 
@@ -1534,6 +1679,10 @@ function RomanceQuestWindow:give_selected_item(choice)
     )
 
     local after_strength = get_relationship_strength(self.adventurer, self.target)
+
+    if adjusted then
+        reset_relationship_decay_timer(self.adventurer, self.target)
+    end
 
     print('Romance relationship adjusted: ' .. tostring(adjusted))
     print('Relationship type after quest: ' ..
