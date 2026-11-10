@@ -16,6 +16,18 @@
 local ADV_EVENTS
 local FORT_EVENTS
 
+local CROSS_RACE_ROMANCE_RACES = {
+	HUMAN = true,
+	DWARF = true,
+	ELF = true,
+	GOBLIN = true,
+}
+
+-- Set an event to true to let it affect the player's adventurer.
+local AFFECT_ADVENTURER = {
+	random_lover_event = false,
+}
+
 --========================
 --	Helper functions
 --========================
@@ -221,6 +233,81 @@ local function get_skill(unit, skill)
 		return 0
 	end
 	return val
+end
+
+local function get_orientation_interest(unit, target)
+	if not unit.status.current_soul
+		or not unit.status.current_soul.orientation_flags
+	then
+		return 0
+	end
+
+	local setorientation = dfhack.reqscript('set-orientation')
+	local sex = tonumber(target.sex)
+
+	if sex == 1 then
+		return setorientation.getInterest(unit, 'male')
+	elseif sex == 0 then
+		return setorientation.getInterest(unit, 'female')
+	end
+
+	return 0
+end
+
+local function can_pair_races(unit1, unit2)
+	if unit1.race == unit2.race then
+		return true
+	end
+
+	local race1 = dfhack.units.getRaceName(unit1)
+	local race2 = dfhack.units.getRaceName(unit2)
+
+	return CROSS_RACE_ROMANCE_RACES[race1]
+		and CROSS_RACE_ROMANCE_RACES[race2]
+end
+
+local function has_romantic_link(unit, target)
+	local hf = df.historical_figure.find(unit.hist_figure_id)
+	if not hf then
+		return false
+	end
+
+	for _, link in ipairs(hf.histfig_links) do
+		if link.target_hf == target.hist_figure_id
+			and (
+				link._type == df.histfig_hf_link_loverst
+				or link._type == df.histfig_hf_link_spousest
+			)
+		then
+			return true
+		end
+	end
+
+	return false
+end
+
+local function add_lover_link(unit, target)
+	local hf = df.historical_figure.find(unit.hist_figure_id)
+
+	local link = df.histfig_hf_link_loverst:new()
+	link.target_hf = target.hist_figure_id
+	link.link_strength = 50
+
+	hf.histfig_links:insert('#', link)
+end
+
+local function can_event_affect_unit(unit, event_name)
+	if not dfhack.world.isAdventureMode() then
+		return true
+	end
+
+	local adventurer = get_adv()
+
+	if adventurer and unit.id == adventurer.id then
+		return AFFECT_ADVENTURER[event_name] == true
+	end
+
+	return true
 end
 
 
@@ -556,6 +643,63 @@ local function random_teleport_event_fort()
 	
 end
 
+local function random_lover_event()
+	local adults = {}
+
+	for _, unit in ipairs(df.global.world.units.active) do
+		if dfhack.units.isAlive(unit)
+			and dfhack.units.isAdult(unit)
+			and dfhack.units.isSane(unit)
+			and unit.status.current_soul
+			and unit.hist_figure_id >= 0
+			and df.historical_figure.find(unit.hist_figure_id)
+			and can_event_affect_unit(unit, 'random_lover_event')
+		then
+			table.insert(adults, unit)
+		end
+	end
+
+	if #adults < 2 then
+		return false
+	end
+
+	-- Choose the first adult randomly.
+	local target = adults[math.random(#adults)]
+
+	-- Both characters come from the filtered list, so the adventurer
+	-- cannot be selected on either side unless the setting allows it.
+	local possible_lovers = {}
+
+	for _, other in ipairs(adults) do
+		if other.id ~= target.id
+			and other.hist_figure_id ~= target.hist_figure_id
+			and can_pair_races(target, other)
+			and get_orientation_interest(target, other) >= 1
+			and get_orientation_interest(other, target) >= 1
+			and not has_romantic_link(target, other)
+			and not has_romantic_link(other, target)
+		then
+			table.insert(possible_lovers, other)
+		end
+	end
+
+	if #possible_lovers == 0 then
+		return false
+	end
+
+	local lover = possible_lovers[math.random(#possible_lovers)]
+
+	-- Create the relationship in both directions.
+	add_lover_link(target, lover)
+	add_lover_link(lover, target)
+
+	print(('%s and %s have become lovers.'):format(
+		dfhack.units.getReadableName(target),
+		dfhack.units.getReadableName(lover)
+	))
+
+	return true
+end
 
 --========================
 --	New modular events (call other scripts)
@@ -586,25 +730,27 @@ end
 --	Event tables
 --========================
 ADV_EVENTS = {
-	random_pregnancy_event_adv,
-	instant_baby_event_adv,
-	berserk_event_adv,
-	unit_on_fire_event_adv,
+	--random_pregnancy_event_adv,
+	--instant_baby_event_adv,
+	--berserk_event_adv,
+	--unit_on_fire_event_adv,
 	--make_unit_vampire_event_adv,
-	random_unit_syndrome_event_adv,
-	random_pickpocket_event_adv,
-	random_teleport_event_adv,
+	--random_unit_syndrome_event_adv,
+	--random_pickpocket_event_adv,
+	--random_teleport_event_adv,
+	random_lover_event,
 }
 
 FORT_EVENTS = {
-	random_pregnancy_event_fort,
-	instant_baby_event_fort,
-	berserk_event_fort,
-	unit_on_fire_event_fort,
-	make_unit_vampire_event_fort,
-	random_unit_syndrome_event_fort,
-	random_pickpocket_event_fort, --Needs to be tested!
-	random_teleport_event_fort, --Needs to be tested!
+	--random_pregnancy_event_fort,
+	--instant_baby_event_fort,
+	--berserk_event_fort,
+	--unit_on_fire_event_fort,
+	--make_unit_vampire_event_fort,
+	--random_unit_syndrome_event_fort,
+	--random_pickpocket_event_fort, --Needs to be tested!
+	--random_teleport_event_fort, --Needs to be tested!
+	random_lover_event,
 }
 
 --========================
